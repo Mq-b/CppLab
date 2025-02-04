@@ -2,11 +2,11 @@
 
 project ("CppLab")
 
-set(CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build/bin)
 
-set(code "src/01httpserver.cpp")
+set(code "src/02httpsclient.cpp")
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
