@@ -1,4 +1,4 @@
-﻿cmake_minimum_required (VERSION 3.12)
+cmake_minimum_required (VERSION 3.12)
 
 project ("CppLab")
 
@@ -6,7 +6,10 @@ set(CMAKE_CXX_STANDARD 23)
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build/bin)
 
-set(code "src/02httpsclient.cpp")
+set(code 
+#    "src/01httpserver.cpp"
+   "src/02httpsclient.cpp"
+)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
