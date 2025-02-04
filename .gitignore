@@ -1,0 +1,23 @@
+# 编译输出
+/build
+/bin
+/out
+
+# Visual Studio Code
+.vscode/
+.vs/
+CMakePresets.json
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*.swp
+
+# 证书文件
+certs/
