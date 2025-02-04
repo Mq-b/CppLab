@@ -18,6 +18,3 @@ Thumbs.db
 # 临时文件
 *.tmp
 *.swp
-
-# 证书文件
-certs/
