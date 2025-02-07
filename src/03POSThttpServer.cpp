@@ -1,10 +1,10 @@
 #include <iostream>
 #include <string>
+#include <print>
 #include <httplib.h>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
-using namespace std;
 
 int main() {
     // 创建 httplib 服务器实例
@@ -14,9 +14,9 @@ int main() {
     svr.Post("/report", [](const httplib::Request& req, httplib::Response& res) {
         try {
             // 解析请求体中的 JSON 数据
-            std::cout << "Received body: " << req.body << std::endl;
+            std::println("Received body: {}", req.body);
             auto j = json::parse(req.body);
-            string type = j.value("type", "");
+            std::string type = j.value("type", "");
 
             json response;
 
@@ -47,7 +47,7 @@ int main() {
             // 设置响应内容和 Content-Type
             res.set_content(response.dump(), "application/json");
         }
-        catch (const std::exception& e) {
+        catch (const std::exception&) {
             // 解析 JSON 出错时返回错误响应
             json error_response = {
                 {"type", "error"},
@@ -60,7 +60,7 @@ int main() {
         });
 
     // 启动服务器，监听 0.0.0.0:8080
-    cout << "Server is running on port 8080" << endl;
+    std::cout << "Server is running on port 8080" << std::endl;
     svr.listen("0.0.0.0", 8080);
 }
 // cmd
