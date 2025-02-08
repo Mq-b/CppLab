@@ -10,7 +10,8 @@ set(code
 #   "src/01httpserver.cpp"
 #   "src/02httpsclient.cpp"
 #   "src/03POSThttpServer.cpp"
-    "src/04POSTHttpClient.cpp"
+#   "src/04POSTHttpClient.cpp"
+    "src/05文件HttpServer.cpp"
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
@@ -24,7 +25,7 @@ set(KEY_FILE "${CERT_PATH}/server.key")
 message(STATUS "Certificate file: ${CERT_FILE}")
 message(STATUS "Private key file: ${KEY_FILE}")
 
-add_executable (CppLab ${code})
+add_executable (CppLab ${code} )
 
 # 传递文件路径给编译后的应用程序
 target_compile_definitions(${PROJECT_NAME} PRIVATE
