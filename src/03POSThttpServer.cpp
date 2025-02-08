@@ -65,3 +65,6 @@ int main() {
 }
 // cmd
 //  curl.exe -X POST http://localhost:8080/report -d "{\"type\": \"file_transfer\"}" -H "Content-Type: application/json"
+// linux shell
+//  curl -X POST http://localhost:8080/report -d '{"type": "file_transfer"}' -H "Content-Type: application/json"
+//  seq 1 1000 | xargs -P 1000 -I {} curl -s -X POST http://localhost:8080/report -d '{"type": "file_transfer"}' -H "Content-Type: application/json"
