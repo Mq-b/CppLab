@@ -11,7 +11,8 @@ set(code
 #   "src/02httpsclient.cpp"
 #   "src/03POSThttpServer.cpp"
 #   "src/04POSTHttpClient.cpp"
-    "src/05文件HttpServer.cpp"
+   "src/05文件HttpServer.cpp"
+#    "src/06文件HttpClient.cpp"
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/include)

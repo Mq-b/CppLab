@@ -17,7 +17,7 @@ int main() {
 
     // 处理文件上传请求
     svr.Post("/upload", [](const httplib::Request& req, httplib::Response& res) {
-        // 获取请求头中的 Device-ID
+        // 获取请求头中的设备信息进行验证
         std::string device_id = req.get_header_value("Device-ID");
         std::string Password = req.get_header_value("Password");
 
@@ -26,7 +26,7 @@ int main() {
             // 设备未验证，返回错误
             res.status = 401;
             res.set_content("Unauthorized", "text/plain");
-            std::clog << "Unauthorized device: "s + device_id + '\n';
+            std::cout << "Unauthorized device: "s + device_id + '\n';
             return;
         }
 
@@ -52,13 +52,13 @@ int main() {
 
             // 响应成功
             res.set_content("File uploaded successfully: " + file_name, "text/plain");
-            std::clog << device_id + " uploaded file: "s + file_name + '\n';
+            std::cout << device_id + " uploaded file: "s + file_name + '\n';
         }
         else {
             // 文件缺失，返回错误
             res.status = 400;
             res.set_content("No file uploaded", "text/plain");
-            std::clog << device_id + " failed to upload file: No file uploaded\n";
+            std::cout << device_id + " failed to upload file: No file uploaded\n";
         }
         });
     // 启动服务器，监听 0.0.0.0:8080
