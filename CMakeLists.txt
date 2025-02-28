@@ -11,8 +11,9 @@ set(code
 #   "src/02httpsclient.cpp"
 #   "src/03POSThttpServer.cpp"
 #   "src/04POSTHttpClient.cpp"
-   "src/05文件HttpServer.cpp"
-#    "src/06文件HttpClient.cpp"
+#   "src/05文件HttpServer.cpp"
+#   "src/06文件HttpClient.cpp"
+   "src/07使用FTXUI创建终端程序.cpp"
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
@@ -26,7 +27,7 @@ set(KEY_FILE "${CERT_PATH}/server.key")
 message(STATUS "Certificate file: ${CERT_FILE}")
 message(STATUS "Private key file: ${KEY_FILE}")
 
-add_executable (CppLab ${code} )
+add_executable (CppLab ${code})
 
 # 传递文件路径给编译后的应用程序
 target_compile_definitions(${PROJECT_NAME} PRIVATE
@@ -39,6 +40,16 @@ target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt-header-only)
 
 find_package(nlohmann_json CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json)
+
+find_package(ftxui 5 REQUIRED)
+# 只支持 Release，源与 ftxuiConfig.cmake 文件写的有问题
+target_link_libraries(${PROJECT_NAME}
+  PRIVATE ftxui::screen
+  PRIVATE ftxui::dom
+  PRIVATE ftxui::component # Not needed for this example.
+)
+# 因为此库 cmake 有问题，所以我们设置显式查找头文件路径
+include_directories("D:/CXX_LIB/FTXUI/include")
 
 # 使用 openssl
 set(CMAKE_PREFIX_PATH "D:/vcpkg-master/installed/x64-windows")
