@@ -13,7 +13,9 @@ set(code
 #   "src/04POSTHttpClient.cpp"
 #   "src/05文件HttpServer.cpp"
 #   "src/06文件HttpClient.cpp"
-   "src/07使用FTXUI创建终端程序.cpp"
+#   "src/07使用FTXUI创建终端程序.cpp"
+#   "src/08使用FTUXUI创建加密解密终端输入程序.cpp"
+    "src/09FPE加密解密.cpp"
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
@@ -42,16 +44,20 @@ find_package(nlohmann_json CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json)
 
 find_package(ftxui 5 REQUIRED)
-# 只支持 Release，源与 ftxuiConfig.cmake 文件写的有问题
+
 target_link_libraries(${PROJECT_NAME}
   PRIVATE ftxui::screen
   PRIVATE ftxui::dom
-  PRIVATE ftxui::component # Not needed for this example.
+  PRIVATE ftxui::component
 )
 # 因为此库 cmake 有问题，所以我们设置显式查找头文件路径
-include_directories("D:/CXX_LIB/FTXUI/include")
+#include_directories("D:/CXX_LIB/FTXUI/include")
 
 # 使用 openssl
-set(CMAKE_PREFIX_PATH "D:/vcpkg-master/installed/x64-windows")
-find_package(OpenSSL REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+#set(CMAKE_PREFIX_PATH "D:/vcpkg-master/installed/x64-windows")
+#find_package(OpenSSL REQUIRED)
+#target_link_libraries(${PROJECT_NAME} PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+
+set(CMAKE_PREFIX_PATH "D:/dagong/test/vcpkg/installed/x64-windows")
+find_package(botan CONFIG REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PRIVATE Botan::Botan)
