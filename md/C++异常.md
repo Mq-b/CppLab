@@ -327,7 +327,55 @@ int main(){
 }
 ```
 
+最后，我们可以以 [**Connector/C++**](https://dev.mysql.com/doc/connector-cpp/1.1/en/connector-cpp-introduction.html) 库中的异常类 `SQLException` 的源码作为一些参考，结束本小节：
 
+```cpp
+class CPPCONN_PUBLIC_EXCEPTION SQLException : public std::runtime_error
+{
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
+protected:
+  const std::string sql_state;
+  const int errNo;
+
+public:
+  SQLException(const SQLException& e) : std::runtime_error(e.what()), sql_state(e.sql_state), errNo(e.errNo) {}
+
+  SQLException(const std::string& reason, const std::string& SQLState, int vendorCode) :
+    std::runtime_error	(reason		),
+    sql_state			(SQLState	),
+    errNo				(vendorCode)
+  {}
+
+  SQLException(const std::string& reason, const std::string& SQLState) : std::runtime_error(reason), sql_state(SQLState), errNo(0) {}
+
+  SQLException(const std::string& reason) : std::runtime_error(reason), sql_state("HY000"), errNo(0) {}
+
+  SQLException() : std::runtime_error(""), sql_state("HY000"), errNo(0) {}
+
+  const std::string & getSQLState() const
+  {
+    return sql_state;
+  }
+
+  const char * getSQLStateCStr() const
+  {
+    return sql_state.c_str();
+  }
+
+
+  int getErrorCode() const
+  {
+    return errNo;
+  }
+
+  virtual ~SQLException() throw () {};
+
+protected:
+  MEMORY_ALLOC_OPERATORS(SQLException)
+};
+```
 
 ## RAII
 
