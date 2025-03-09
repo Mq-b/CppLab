@@ -377,11 +377,108 @@ protected:
 };
 ```
 
+你会注意到它有**虚析构**，这也算一个需要注意的点，如果你的异常类型较为复杂，有自己的资源需要释放，那就需要定义。
+
 ## RAII
 
-许多人对于 RAII 的理解只是：*构造一个类，构造函数申请资源，析构函数释放资源。*
+“[**资源获取即初始化**](https://zh.cppreference.com/w/cpp/language/raii)”(RAII，Resource Acquisition Is Initialization)。
 
-这是极其不准确的，RAII中的一个核心就是**异常**。
+许多人对于 RAII 的理解只是：***构造函数申请资源，析构函数释放资源，让对象的生命周期和资源绑定***。
+
+这是极其不准确的，RAII中的一个核心就是**异常**。所以还应该有：**当异常抛出时，C++ 会自动调用对象的析构函数（也就是栈回溯），保障资源不泄露。**
+
+- **RAII = 资源生命周期绑定对象 + 异常安全保证** 
+
+```cpp
+class RAII {
+public:
+    explicit RAII(size_t size) : data_(new int[size]) {
+        std::cout << "构造" << std::endl;
+    }
+
+    ~RAII() {
+        delete[] data_;
+        std::cout << "析构" << std::endl;
+    }
+
+    int* get() const { return data_; }
+
+private:
+    int* data_;
+};
+```
+
+以这样一个简单的 RAII 类为例，构造函数中申请资源，析构函数释放，那么它在遇到异常时会做什么呢？
+
+```cpp
+void f(){
+    RAII raii{ 10 };
+    //todo.. 假设有其它代码抛出异常
+    throw std::runtime_error("error");
+}
+
+int main(){
+    // 上层进行异常的捕获和处理
+    try{
+        f();
+    }
+    catch(std::exception& e){
+        std::cerr << e.what() << '\n';
+    }
+    catch (...){}    
+}
+```
+
+> 运行[测试](https://godbolt.org/z/nEz7h88vc)。输出：
+>
+> 构造
+> 析构
+> error
+
+正常来说，我们知道，当函数 `f` 执行完后，局部对象要逆序销毁，有析构函数就调用析构函数。而**即使执行函数 `f` 的时候抛出了异常，这个销毁依然会发生（前提是你有捕获这个异常）。**
+
+>如果异常被抛出但未被捕获那么就会调用 [std::terminate](https://zh.cppreference.com/w/cpp/error/terminate)。是否对未捕获的异常进行任何栈回溯由**实现定义**。（简单的说就是不一定会调用析构）
+>
+>我们的建议是一定要进行处理。
+
+是不是现在觉得”*栈回溯*“这个看起来高深的词也没啥难理解的了？
+
+- **“栈回溯”就是 C++ 在异常或返回时，按构造的逆序自动清理局部对象的过程。**
+
+我们的许多 C++ 标准库中的类型都封装的很好，不再需要我们用户定义的析构函数进行什么释放，会自动调用成员的析构函数进行释放。
+
+```cpp
+class Resource {
+public:
+    Resource(int id) : id_(id) {
+        std::cout << "Resource " << id_ << " created\n";
+    }
+    ~Resource() {
+        std::cout << "Resource " << id_ << " destroyed\n";
+    }
+private:
+    int id_;
+};
+
+void exception_safe_demo() {
+    std::vector<Resource> resources;
+    resources.emplace_back(1);
+    resources.emplace_back(2);
+
+    throw std::runtime_error("Oops!");  // 抛出异常
+
+    resources.emplace_back(3);  // 不会执行
+} // 栈回溯触发 vector 析构 → Resource 2 和 1 的析构函数被调用
+```
+
+> 运行[结果](https://godbolt.org/z/exvKxT4Pe)：
+>
+> Resource 1 created
+> Resource 2 created
+> Resource 1 destroyed
+> Resource 1 destroyed
+> Resource 2 destroyed
+> Oops!
 
 ## `noexcept`
 
