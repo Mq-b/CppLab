@@ -443,7 +443,7 @@ int main(){
 
 是不是现在觉得”*栈回溯*“这个看起来高深的词也没啥难理解的了？
 
-- **“栈回溯”就是 C++ 在异常或返回时，按构造的逆序自动清理局部对象的过程。**
+- **“栈回溯”就是在执行函数过程中遇到异常，函数按构造的逆序自动清理局部对象并“返回”的过程。**
 
 我们的许多 C++ 标准库中的类型都封装的很好，不再需要我们用户定义的析构函数进行什么释放，会自动调用成员的析构函数进行释放。
 
@@ -482,4 +482,147 @@ void exception_safe_demo() {
 
 ## `noexcept`
 
+`noexcept` 是 C++11 引入的关键字，在早期 C++98 还存在[动态异常说明](https://zh.cppreference.com/w/cpp/language/except_spec) `throw(类型标识表达式)` ，我们一起介绍。
+
+```cpp
+void f() noexcept;
+void f() noexcept(true);
+void f() throw();
+```
+
+这三种声明方式均表示：**函数 `f` 保证不抛出任何异常**，使编译器能够进行更深度的优化。如 省略生成异常处理的二进制，减小文件体积、移动语义的优化（标准库容器如 `std::vector` 优先使用 `noexcept` 移动构造而非复制构造）。也可以让代码**语义清晰化**：明确告知调用者“此函数不会抛出异常，无需额外处理”。
+
+若被声明为 `noexcept` 的函数内部实际抛出了异常，程序将**直接调用 [`std::terminate()`](https://zh.cppreference.com/w/cpp/error/terminate) 终止运行**，不会进行任何异常传递或栈回溯。
+这意味着：`noexcept` 也可用于表明“*此函数的异常无法被合理处理，一旦发生错误应视为致命故障*”。
+
+`noexcept` 关键字存在两种不同用法：**说明符**、**运算符**。
+
+1. **无条件承诺**：`noexcept` 或 `noexcept(true)`
+
+    ```cpp
+    void safe() noexcept;  // 保证不抛异常
+    ```
+
+2. **条件性承诺：**`noexcept(表达式)`
+
+    ```cpp
+    template<typename T>
+    void swap(T& a, T& b) noexcept(noexcept(a.swap(b)));  // 仅当 a.swap(b) 不抛异常时，本函数才 noexcept
+    ```
+
+    - **外层 `noexcept`**：说明符，声明函数的异常规范。
+    - **内层 `noexcept`**：运算符，检测表达式是否会抛异常。
+
+    此处连用了 `noexcept` 说明符与运算符，**noexcept 运算符获取表达式 `a.swap(b)` 是否为 `noexcept` 的**，如果是，得到`true`；带入即为 `noexcept(true)`，反之则 `false`。需要强调的是 noexcept 的表达式必须是编译期的。
+
+3. 从标准库源码中看应用
+
+    `MSVC STL` 中 `std::vector` 的构造函数：
+
+    ```cpp
+    _CONSTEXPR20 vector() noexcept(is_nothrow_default_constructible_v<_Alty>) : _Mypair(_Zero_then_variadic_args_t{}) {
+        _Mypair._Myval2._Alloc_proxy(_GET_PROXY_ALLOCATOR(_Alty, _Getal()));
+    }
+    ```
+
+    - **`is_nothrow_default_constructible_v<_Alty>`**：
+      编译期检测分配器类型 `_Alty` 的默认构造函数是否 `noexcept`。
+    - **结果传递**：
+      若为 `true`，则 `vector` 的构造函数标记为 `noexcept`，否则可能抛异常。
+
+    此处也是典型的 `noexcept` 的说明符应用，且也是根据条件设置。
+
+---
+
+noexcept 经过我们的介绍好像有些复杂了？的确，因为标准库的做法都极其规范，对于异常安全的要求极高，有的时候 `noexcept` 的表达式会嵌套再嵌套，甚至使用 `||` 、`&&` 等运算符添加更多条件来设置。不过说来说去，其实 `noexcept` 关键字的作用也就那两个，很简单，用一个小例子来结束我们 noexcept 的介绍。
+
+```cpp
+#include <iostream>
+
+void f(); // 默认 noexcept(false)
+void f2() noexcept(noexcept(f())); // 等价于 noexcept(false)
+
+template<typename T>
+void f3() noexcept(std::is_same_v<T,int>);
+
+int main(){
+    constexpr bool b = noexcept(f());
+    constexpr bool b2 = noexcept(f2());
+    constexpr bool b3 = noexcept(f3<int>());
+    static_assert(b == false);
+    static_assert(b2 == false);
+    static_assert(b3 == true);
+}
+```
+
+> 运行[测试](https://godbolt.org/z/6a9Mn6Y83)。
+
+另外，关于过时的[动态异常说明](https://zh.cppreference.com/w/cpp/language/except_spec)，并不想过多介绍，我们稍微提一下，让大家能看懂以前的代码就好：
+
+```cpp
+struct X{};
+struct Y{};
+struct Z: X {};
+void f() throw(X, Y) // 动态异常说明，要求函数 f 只能抛出 X 或 Y 类型，以及他们的派生类
+{
+    bool n = false;
+
+    if (n)
+        throw X(); // OK，可能调用 std::terminate()
+    if (n)
+        throw Z(); // 同样 OK
+
+    throw 1; // 将调用 std::unexpected()
+}
+```
+
+> 运行[测试](https://godbolt.org/z/6a9Mn6Y83)。
+
 ## 异常安全
+
+异常安全其实算一个较为高阶的话题，在许多八股或面试中也都常常提及。主要的还是要介绍**四个异常保证等级**。
+
+以下是四个被广泛认可的异常保证等级[[4\]](https://zh.cppreference.com/w/cpp/language/exceptions#cite_note-4)[[5\]](https://zh.cppreference.com/w/cpp/language/exceptions#cite_note-5)[[6\]](https://zh.cppreference.com/w/cpp/language/exceptions#cite_note-6)，每个是另一个的严格超集：
+
+1. *不抛出（或不失败）异常保证*——**函数始终不会抛出异常**。[析构函数](https://zh.cppreference.com/w/cpp/language/destructor)和其他可能在栈回溯中调用的函数被期待为不会抛出（以其他方式报告或隐瞒错误）。[析构函数](https://zh.cppreference.com/w/cpp/language/destructor)默认为 [noexcept](https://zh.cppreference.com/w/cpp/language/noexcept)。(C++11 起)交换函数，[移动构造函数](https://zh.cppreference.com/w/cpp/language/move_constructor)，及为提供强异常保证所使用的其他函数，都被期待为不会失败（函数总是成功）。
+2. *强异常保证*——如果函数抛出异常，那么**程序的状态会恰好被回滚到该函数调用前的状态**。（例如 [std::vector::push_back](https://zh.cppreference.com/w/cpp/container/vector/push_back)）。
+3. *基本异常保证*——如果函数抛出异常，那么程序处于某个有效状态。**不泄漏任何资源**，且所有**对象的不变式[^1]都保持完好**。
+4. *无异常保证*——如果函数抛出异常，那么程序可能不会处于有效的状态：可能已经发生了资源泄漏、内存损坏，或其他摧毁不变式的错误。
+
+第一个和第四个异常保证等级很好理解，基本无需介绍。需要强调的是：
+
+- **异常 ≠ 灾难**：多数异常仅触发参数合法性检查（如无效输入），未实际修改系统状态。
+- **栈回溯 ≠ 强保证**：RAII 自动释放资源是基础机制，强保证需额外设计状态回滚逻辑。
+
+**绝大部分的三方库和标准库设计都可以满足强异常保证（最次基本异常保证），许多异常抛出基本都是在表达参数不对，输入不符合要求等，并非是什么严重的错误。**
+
+我们在日常开发设计接口中，也完全可以检查函数参数，不满足直接往外抛出异常即可。
+
+例如在 HTTP 服务端中，函数接受处理客户端发送的数据，根据约定的格式将 json 数据反序列化为对象方便操作
+
+```cpp
+void handleJsonPost(const httplib::Request &req, httplib::Response &res) {
+    DeviceStatus device_status;
+    try {
+        auto jsonBody = json::parse(req.body);
+        device_status = jsonBody.get<DeviceStatus>(); // 反序列化为对象进行操作
+    }catch(std::exception& e){
+        res.set_content("Error", "text/plain");
+        spdlog::error("handleJsonPost Error: {}", e.what());
+        return;
+    }
+    //todo..
+}
+```
+
+如果反序列化抛出异常，那只能代表客户端发送的 json 格式不对，正常的记录错误并回复，然后 return 即可，这种异常并没有什么影响。
+
+在平时的编程中，我们尽量让代码至少要达到**基本异常保证**，并且要熟练处理异常。
+
+## 总结
+
+其实 C++ 中还有许多的异常设施，包括一些别的可以介绍，不过这样也就够了，剩下的什么设施，如异常指针之类的，各位可以自行探索学习。
+
+
+
+[^1]: 不变式（Invariant）是一个在程序执行过程中永远保持成立的条件。不变式在检测程序是否正确方面非常有用。例如编译器优化就用到了不变式。举个例子：“*类的不变式*”，类的不变式是用于约束类的实例的不变式。成员函数必须使这个不变式保持成立。 不变式约束了类的实例的可能取值。
