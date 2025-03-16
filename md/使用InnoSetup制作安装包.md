@@ -22,6 +22,12 @@
 
 ![01](../imgae/InnoSetup01.png)
 
+## 添加中文语言支持
+
+Inno Setup 默认不包含中文语言包，需要手动下载[简体中文翻译文件](https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/Unofficial/ChineseSimplified.isl)。
+
+下载后，将文件放入 Inno Setup 安装目录的 `Languages` 文件夹中。在该文件夹内，你会发现多个 `.isl` 文件，它们分别对应不同语言的翻译。
+
 ## 使用示例，为一个程序制作安装包
 
 双击打开安装好的 Inno Setup Complier。
@@ -38,13 +44,13 @@
     `Application version` 应用程序的版本号（v1.0）。
     `Application publishe`r 应用的发布者。
     `Application website` 应用程序的官网。
-   
+
     ![04](../imgae/InnoSetup04.png)
 
 3. `Application folder name` 是安装地址的文件夹名字，比如用户如何选择把程序安装到 `D:/` 那么就自动再创建一个文件夹（名字就是 `Application folder name`） 将程序放入，那么程序路径可能是：`D:/client/`。一般这个值可以不用改，就自动填上的程序名即可。
 
      ![05](../imgae/InnoSetup05.png)
-     
+
 4. 选择应用的执行文件，也就是启动程序 `.exe`；以及相关的资源文件和依赖。点击圈住的红色按钮进行设置，一个是可执行文件路径，一个是之前“**前期准备**”中创建的存放依赖的目录。
 
      ![06](../imgae/InnoSetup06.png)
