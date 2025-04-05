@@ -2,9 +2,12 @@ cmake_minimum_required (VERSION 3.12)
 
 project ("CppLab")
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build/bin)
+
+add_compile_options(/Zi)
+add_link_options(/DEBUG)
 
 set(code 
 #   "src/01httpserver.cpp"
@@ -15,7 +18,7 @@ set(code
 #   "src/06文件HttpClient.cpp"
 #   "src/07使用FTXUI创建终端程序.cpp"
 #   "src/08使用FTUXUI创建加密解密终端输入程序.cpp"
-    "src/09FPE加密解密.cpp"
+#    "src/09FPE加密解密.cpp"
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
@@ -29,13 +32,19 @@ set(KEY_FILE "${CERT_PATH}/server.key")
 message(STATUS "Certificate file: ${CERT_FILE}")
 message(STATUS "Private key file: ${KEY_FILE}")
 
-add_executable (CppLab ${code})
+# 引入两个外部子项目
+add_subdirectory(external/nativefiledialog-extended)
+add_subdirectory(external/tinyfiledialogs)
+
+add_executable (CppLab ${code} "src/10使用nfd以及tfl库弹窗以及文件选择对话框.cpp")
 
 # 传递文件路径给编译后的应用程序
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     CERT_FILE="${CERT_FILE}"
     KEY_FILE="${KEY_FILE}"
 )
+
+target_link_libraries(${PROJECT_NAME} PRIVATE nfd tinyfiledialogs)
 
 find_package(fmt CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt-header-only)
@@ -49,6 +58,7 @@ target_link_libraries(${PROJECT_NAME}
   PRIVATE ftxui::screen
   PRIVATE ftxui::dom
   PRIVATE ftxui::component
+  dbghelp
 )
 # 因为此库 cmake 有问题，所以我们设置显式查找头文件路径
 #include_directories("D:/CXX_LIB/FTXUI/include")
@@ -61,3 +71,9 @@ target_link_libraries(${PROJECT_NAME}
 set(CMAKE_PREFIX_PATH "D:/dagong/test/vcpkg/installed/x64-windows")
 find_package(botan CONFIG REQUIRED)
   target_link_libraries(${PROJECT_NAME} PRIVATE Botan::Botan)
+
+find_package(imgui CONFIG REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PRIVATE imgui::imgui)
+
+find_package(cpptrace CONFIG REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PRIVATE cpptrace::cpptrace)
