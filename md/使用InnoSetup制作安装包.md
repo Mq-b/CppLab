@@ -132,6 +132,4 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 
 > ✅ 提示：复制模板时，只需替换上方几个路径即可复用 `.iss` 脚本。
 
-
 并且安装包是很智能的，如果你的系统中已经安装过一次，那么再次安装，会被视作**更新**，无需指明路径，我们也可以用这种方式进行更新。
-
