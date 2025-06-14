@@ -5,16 +5,16 @@ project ("CppLab")
 set(CMAKE_CXX_STANDARD 20)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build/${CMAKE_BUILD_TYPE}/bin)
 
-set(CMAKE_PREFIX_PATH "/home/mq-b/project/vcpkg/installed/x64-linux")
-set(wxsqlite3_LIBRARIES "/usr/local/lib/libwxcode_gtk3u_wxsqlite3-3.0.so")
+#set(CMAKE_PREFIX_PATH "/home/mq-b/project/vcpkg/installed/x64-linux")
+#set(wxsqlite3_LIBRARIES "/usr/local/lib/libwxcode_gtk3u_wxsqlite3-3.0.so")
 
 # 硬编码 wxWidgets 的头文件路径 属于 wxsqlite3 的依赖，使用 apt 安装
-include_directories(
-    /usr/lib/x86_64-linux-gnu/wx/include/gtk3-unicode-3.0 
-    /usr/include/wx-3.0
-)
-
-add_compile_options(-D_FILE_OFFSET_BITS=64 -DWXUSINGDLL -D__WXGTK__ -pthread)
+#include_directories(
+#    /usr/lib/x86_64-linux-gnu/wx/include/gtk3-unicode-3.0 
+#    /usr/include/wx-3.0
+#)
+#
+#add_compile_options(-D_FILE_OFFSET_BITS=64 -DWXUSINGDLL -D__WXGTK__ -pthread)
 
 # add_compile_options(/Zi)
 # add_link_options(/DEBUG)
@@ -29,10 +29,11 @@ set(code
 #   "src/07使用FTXUI创建终端程序.cpp"
 #   "src/08使用FTUXUI创建加密解密终端输入程序.cpp"
 #   "src/09FPE加密解密.cpp"
-    "src/11使用wxSQLite操作加密数据库.cpp"
+#   "src/11使用wxSQLite操作加密数据库.cpp"
+    "src/11test.cpp"
 )
 
-# include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
 # # 设置证书文件和私钥文件的路径
 # set(CERT_PATH "${CMAKE_SOURCE_DIR}/certs")
@@ -49,10 +50,10 @@ set(code
 
 add_executable (${PROJECT_NAME} ${code})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    wx_baseu-3.0
-    ${wxsqlite3_LIBRARIES} 
-)
+#target_link_libraries(${PROJECT_NAME} PRIVATE
+#    wx_baseu-3.0
+#    ${wxsqlite3_LIBRARIES} 
+#)
 
 # # 传递文件路径给编译后的应用程序
 # target_compile_definitions(${PROJECT_NAME} PRIVATE
@@ -65,8 +66,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 # find_package(fmt CONFIG REQUIRED)
 # target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt-header-only)
 
-# find_package(nlohmann_json CONFIG REQUIRED)
-# target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json)
+find_package(nlohmann_json CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json)
 
 # find_package(ftxui 5 REQUIRED)
 
@@ -80,9 +81,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 #include_directories("D:/CXX_LIB/FTXUI/include")
 
 # 使用 openssl
-#set(CMAKE_PREFIX_PATH "D:/vcpkg-master/installed/x64-windows")
-#find_package(OpenSSL REQUIRED)
-#target_link_libraries(${PROJECT_NAME} PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+set(CMAKE_PREFIX_PATH "D:/vcpkg-master/installed/x64-windows")
+find_package(OpenSSL REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenSSL::SSL OpenSSL::Crypto)
 
 # set(CMAKE_PREFIX_PATH "D:/dagong/test/vcpkg/installed/x64-windows")
 # find_package(botan CONFIG REQUIRED)
