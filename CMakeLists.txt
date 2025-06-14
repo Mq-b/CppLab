@@ -83,7 +83,12 @@ target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json)
 # 使用 openssl
 set(CMAKE_PREFIX_PATH "D:/vcpkg-master/installed/x64-windows")
 find_package(OpenSSL REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+find_package(CURL REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    OpenSSL::SSL 
+    OpenSSL::Crypto 
+    CURL::libcurl
+)
 
 # set(CMAKE_PREFIX_PATH "D:/dagong/test/vcpkg/installed/x64-windows")
 # find_package(botan CONFIG REQUIRED)

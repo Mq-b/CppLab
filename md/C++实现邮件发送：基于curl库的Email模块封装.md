@@ -45,10 +45,33 @@
 
 我们使用 QQ 邮箱作为示例，在编写代码之前，我们需要先做一些准备工作。
 
-1. 开启 `STMP` 服务与申请授权码。
+1. 开启 `SMTP` 服务与申请授权码。
+   1. 打开[QQ邮箱网页端](https://mail.qq.com/)，登录邮箱账号。
+   2. 点击右上角头像，选择“**设置**”。
+   3. 左侧菜单栏选择“**账号与安全**”。
+   4. 选择左侧“**安全设置**”。
+   5. 在“**POP3/IMAP/SMTP/Exchange/CardDAV/CalDAV服务**”中，开启“SMTP服务”，并获取授权码。
 2. 验证授权码有效，先使用 `curl` 命令行工具测试一下是否可以发送邮件。
 
 端口设置见 [文档](https://service.mail.qq.com/detail/0/427)，通常为 `587`、`465`。
+
+邮件文本 `测试邮件.txt` 内容：
+
+```email
+From: Test <Mq-b@qq.com>
+To: Mq-b@qq.com
+Subject: 测试邮件
+
+这是一封使用curl发送的测试邮件。
+```
+
+| 邮件文本字段                             | 说明                                                           |
+| ---------------------------------- | ------------------------------------------------------------ |
+| `From: Test <Mq-b@qq.com>` | 发件人名字和邮箱地址，显示邮件是谁发的。`Test` 是显示名，`Mq-b@qq.com` 是发件邮箱。 |
+| `To: Mq-b@qq.com`                  | 收件人邮箱地址，告诉邮件服务器邮件发给谁。                                        |
+| `Subject: 测试邮件`                    | 邮件主题，收件人在邮箱客户端看到的标题。                                         |
+| 空行                                 | 邮件头部和正文之间必须有一个空行，用来分隔。                                       |
+| `这是一封使用curl发送的测试邮件。`               | 邮件正文内容，邮件的主要文本信息。                                            |
 
 ```bash
 curl -v --url "smtp://smtp.qq.com:587" --ssl-reqd ^
@@ -71,18 +94,17 @@ curl -v --url "smtp://smtp.qq.com:587" --ssl-reqd ^
 | `--login-options "AUTH=LOGIN"`          | 强制使用 SMTP `LOGIN` 认证方式，避免 curl 默认用 `PLAIN` 导致编码处理认证失败 |
 
 >[!Tip]
->`curl` 命令行工具在不同平台表现略有差异，以上命令在 Windows 上使用时需要注意路径分隔符和编码处理。
->以上命令就是在 `windows cmd` 命令提示符中测试执行的。
+>`curl` 命令行工具在不同平台表现略有差异，以上命令就是在 `windows cmd` 命令提示符中测试执行的。需要注意路径分隔符和编码处理。
 >
->Linux 中 测试：
+>Linux 中执行测试：
 >
 >```bash
 >curl --url "smtp://smtp.qq.com:587" --ssl-reqd \
->  --mail-from "Mq-b@qq.com" --mail-rcpt "Mq-b@qq.com" \
+>--mail-from "Mq-b@qq.com" --mail-rcpt "Mq-b@qq.com" \
 >  --upload-file ./测试邮件.txt \
 >  --user "Mq-b@qq.com:你的授权码" \
 >  --login-options "AUTH=LOGIN"
->```
+>  ```
 
 邮件文本 `测试邮件.txt` 内容：
 
@@ -105,3 +127,144 @@ Subject: 测试邮件
 ---
 
 如果以上内容你都了解了，并且命令测试通过，那么前置也就完成了。下面我们开始编写 C++ 代码进行邮件发送。
+
+## 基于 curl 库编写C++代码发送邮件
+
+我们将使用 `curl` 库来实现邮件发送功能。首先确保你已经安装了 `curl` 库，并且在 C++ 项目中正确链接。
+
+windows 中建议使用 `vcpkg` 安装 `curl` 库：
+
+```bash
+vcpkg install openssl:x64-windows # curl 依赖 openssl
+vcpkg install curl:x64-windows
+```
+
+在 Linux 中，你可以使用包管理器安装 `libcurl`：
+
+```bash
+sudo apt-get install libcurl4-openssl-dev
+```
+
+cmake 引入 `curl` 库：
+
+```cmake
+find_package(OpenSSL REQUIRED)
+find_package(CURL REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    OpenSSL::SSL 
+    OpenSSL::Crypto 
+    CURL::libcurl
+)
+```
+
+或者可以单文件，命令行编译：
+
+```bash
+g++ ./邮件发送测试.cpp -o mail -lcurl -lssl -lcrypto
+```
+
+测试代码：
+
+```cpp
+#include <curl/curl.h>
+#include <string>
+#include <iostream>
+#include <cstring>
+
+struct UploadStatus {
+    std::size_t bytes_read;
+    std::string payload;
+};
+
+std::size_t payload_source(char* ptr, std::size_t size, std::size_t nmemb, void* userp) {
+    UploadStatus* upload_ctx = reinterpret_cast<UploadStatus*>(userp);
+    const std::size_t buffer_size = size * nmemb;
+    if (upload_ctx->bytes_read >= upload_ctx->payload.size())
+        return 0; // 邮件内容写完了
+    std::size_t copy_size = upload_ctx->payload.size() - upload_ctx->bytes_read;
+    if (copy_size > buffer_size)
+        copy_size = buffer_size;
+    memcpy(ptr, upload_ctx->payload.c_str() + upload_ctx->bytes_read, copy_size);
+    upload_ctx->bytes_read += copy_size;
+    return copy_size;
+}
+
+int main() {
+    const char* smtp_url = "smtp://smtp.qq.com:587"; // SMTP服务器地址和端口
+    const char* username = "Mq-b@qq.com";            // 登录用的邮箱账号
+    const char* password = "abcdefg";                // 邮箱的授权码
+    const char* from = "Mq-b@qq.com";                // 发件人邮箱
+    const char* to = "Mq-b@qq.com";                  // 收件人邮箱
+
+    // 邮件内容必须头部和正文之间有一行空行，并以回车换行结尾
+    std::string payload =
+        "To: Mq-b@qq.com\r\n"
+        "From: Mq-b@qq.com\r\n"
+        "Subject: Test Email from libcurl\r\n"
+        "\r\n"
+        "Hello,\r\n"
+        "This is a test email sent using libcurl in C++.\r\n";
+
+    CURL* curl = curl_easy_init();
+    CURLcode res = CURLE_OK;
+    curl_slist* recipients = nullptr;
+    if (curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, smtp_url);
+        curl_easy_setopt(curl, CURLOPT_USERNAME, username);
+        curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
+        curl_easy_setopt(curl, CURLOPT_MAIL_FROM, from);
+        recipients = curl_slist_append(recipients, to);
+        curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);                 // 开启调试信息输出
+        curl_easy_setopt(curl, CURLOPT_LOGIN_OPTIONS, "AUTH=LOGIN"); // 指定 LOGIN 认证方式
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+
+        UploadStatus upload_ctx = { 0, payload };
+        curl_easy_setopt(curl, CURLOPT_READFUNCTION, payload_source);
+        curl_easy_setopt(curl, CURLOPT_READDATA, &upload_ctx);
+        curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+
+        res = curl_easy_perform(curl);
+
+        if (res != CURLE_OK)
+            std::cerr << "curl_easy_perform() failed ❌: " << curl_easy_strerror(res) << std::endl;
+        else
+            std::cout << "Email sent successfully! ✅" << std::endl;
+
+        curl_slist_free_all(recipients);
+        curl_easy_cleanup(curl);
+    }
+}
+```
+
+> [!Tip]
+> 测试了 `windows msvc` 和` Linux g++` 编译器，均可以正常编译代码并执行发送邮件功能。
+> 如果你在编译时遇到问题，请确保 `curl` 库和相关依赖（如 `OpenSSL`）已正确安装并链接。
+
+> [!WARNING]
+> 注意：在实际使用中，请确保你的授权码是正确的，并且 SMTP 服务已开启。
+> 如果你使用的是其他邮箱服务商，请根据其提供的 SMTP 服务器地址和端口进行相应修改。
+
+如果你成功运行了以上代码，并且收到了邮件，那么恭喜你，你已经成功实现了基于 `curl` 库的邮件发送功能。
+
+下面我们来分析一下代码，后面则会再对代码进行封装，提供一个更易用的邮件发送模块。
+
+### 代码分析
+
+代码的主要逻辑是使用 `curl` 库的 API 来设置 SMTP 连接、身份验证和邮件内容。以下是代码的关键部分：
+
+1. **初始化 `curl`**：使用 `curl_easy_init()` 初始化一个 `CURL` 句柄。
+2. **设置 SMTP 连接**：使用 `curl_easy_setopt()` 设置 SMTP 连接的选项，包括服务器地址、端口号、身份验证方式、用户名和密码等。
+3. **设置邮件内容**：使用 `curl_easy_setopt()` 设置邮件内容的选项，包括发件人、收件人、主题和正文等。
+4. **上传邮件内容**：通过 `curl_easy_setopt()` 设置一个回调函数 `payload_source`，该函数负责提供邮件内容。`payload_source` 函数会在需要时被调用，以读取邮件内容并返回给 `curl`。
+5. **执行发送**：使用 `curl_easy_perform()` 执行邮件发送操作。 如果发送成功，返回值为 `CURLE_OK`，否则会输出错误信息。
+6. **清理资源**：使用 `curl_slist_free_all()` 释放收件人列表，使用 `curl_easy_cleanup()` 清理 `CURL` 句柄。
+7. **输出结果**：根据发送结果输出相应的提示信息。
+
+> [!NOTE]
+> `payload_source` 函数是一个回调函数，用于提供邮件内容。它会在 `curl` 需要读取邮件内容时被调用。我们使用 `UploadStatus` 结构体来跟踪已读取的字节数和邮件内容。
+> 通过 `memcpy` 将邮件内容复制到 `ptr` 指向的缓冲区中，并更新已读取的字节数。
+> `curl` 需要知道邮件内容的长度，因此我们返回邮件内容的长度。
+> 如果邮件内容已全部读取，则返回 0，表示没有更多内容可供读取。
