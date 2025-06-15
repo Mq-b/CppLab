@@ -209,32 +209,32 @@ int main() {
     CURLcode res = CURLE_OK;
     curl_slist* recipients = nullptr;
     if (curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, smtp_url);
-        curl_easy_setopt(curl, CURLOPT_USERNAME, username);
-        curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
-        curl_easy_setopt(curl, CURLOPT_MAIL_FROM, from);
-        recipients = curl_slist_append(recipients, to);
-        curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);
-        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+        curl_easy_setopt(curl, CURLOPT_URL, smtp_url);               // 设置SMTP服务器地址
+        curl_easy_setopt(curl, CURLOPT_PORT, 587L);                  // 设置SMTP端口
+        curl_easy_setopt(curl, CURLOPT_USERNAME, username);          // 设置SMTP用户名
+        curl_easy_setopt(curl, CURLOPT_PASSWORD, password);          // 设置SMTP密码（授权码）
+        curl_easy_setopt(curl, CURLOPT_MAIL_FROM, from);             // 设置发件人邮箱
+        recipients = curl_slist_append(recipients, to);              // 构造收件人邮箱列表
+        curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);       // 设置收件人邮箱
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);     // 使用 SSL/TLS 加密连接
         curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);                 // 开启调试信息输出
         curl_easy_setopt(curl, CURLOPT_LOGIN_OPTIONS, "AUTH=LOGIN"); // 指定 LOGIN 认证方式
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);          // 跳过SSL证书校验
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);          // 跳过SSL主机名校验
 
         UploadStatus upload_ctx = { 0, payload };
-        curl_easy_setopt(curl, CURLOPT_READFUNCTION, payload_source);
-        curl_easy_setopt(curl, CURLOPT_READDATA, &upload_ctx);
-        curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
-
-        res = curl_easy_perform(curl);
+        curl_easy_setopt(curl, CURLOPT_READFUNCTION, payload_source); // 设置回调函数，用于提供邮件内容
+        curl_easy_setopt(curl, CURLOPT_READDATA, &upload_ctx);        // 设置回调函数的上下文数据，传递upload_ctx
+        curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);                   // 设置为上传模式（即发邮件）
+        res = curl_easy_perform(curl);                                // 正式执行SMTP流程（连接、认证、发信）。libcurl会自动完成所有SMTP细节
 
         if (res != CURLE_OK)
             std::cerr << "curl_easy_perform() failed ❌: " << curl_easy_strerror(res) << std::endl;
         else
             std::cout << "Email sent successfully! ✅" << std::endl;
 
-        curl_slist_free_all(recipients);
-        curl_easy_cleanup(curl);
+        curl_slist_free_all(recipients);                               // 释放收件人列表
+        curl_easy_cleanup(curl);                                       // 清理CURL句柄
     }
 }
 ```
