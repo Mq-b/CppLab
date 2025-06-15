@@ -239,8 +239,8 @@ int main() {
 }
 ```
 
-> [!Tip]
-> 测试了 `windows msvc` 和` Linux g++` 编译器，均可以正常编译代码并执行发送邮件功能。
+> [!NOTE]
+> 测试了 `windows msvc` 和 `Linux g++` 编译器，均可以正常编译代码并执行发送邮件功能。
 > 如果你在编译时遇到问题，请确保 `curl` 库和相关依赖（如 `OpenSSL`）已正确安装并链接。
 
 > [!WARNING]
@@ -268,3 +268,51 @@ int main() {
 > 通过 `memcpy` 将邮件内容复制到 `ptr` 指向的缓冲区中，并更新已读取的字节数。
 > `curl` 需要知道邮件内容的长度，因此我们返回邮件内容的长度。
 > 如果邮件内容已全部读取，则返回 0，表示没有更多内容可供读取。
+
+> [!Tip]
+> 当然了，只要你经常收到邮件，就会发现很多邮件是有着非常美观的UI界面的，这些邮件通常是使用 HTML 格式编写的，而不是我们这种纯文本邮件。
+> 我们可以通过设置邮件头部的 `Content-Type` 来发送 HTML 格式的邮件。
+>
+> ```cpp
+> std::string payload =
+>       "To: Mq-b@qq.com\r\n"
+>       "From: Mq-b@qq.com\r\n"
+>       "Subject: 测试HTML邮件\r\n"
+>       "Content-Type: text/html; charset=UTF-8\r\n"
+>       "\r\n"
+>       "<h1>Hello!</h1>"
+>       "<p>这是一封 <b>HTML</b> 邮件。</p>\r\n";
+> ```
+>
+> 这段 HTML 非常简单，包含一个标题和一段文本，以及对文本的加粗处理。
+> 你可以根据需要编写更复杂的 HTML 内容，甚至添加图片、链接等元素。
+> > 需要注意的是，HTML 邮件的内容必须以 `\r\n` 结尾，以符合邮件格式规范。
+> 另外，HTML 邮件通常需要设置 **`Content-Type`** 头部，以告诉邮件客户端这是 HTML 格式的邮件。
+> css 样式也可以内嵌在 HTML 中，或者通过外部链接引用样式表。
+>
+> ```cpp
+> std::string payload =
+>     "To: Mq-b@qq.com\r\n"
+>     "From: Mq-b@qq.com\r\n"
+>     "Subject: 测试HTML邮件\r\n"
+>     "Content-Type: text/html; charset=UTF-8\r\n"
+>     "\r\n"
+>     "<html><head>"
+>     "<style>"
+>     "h1 { color: red; }"
+>     "p { font-size: 18px; color: blue; }"
+>     "</style>"
+>     "</head><body>"
+>     "<h1>Hello!</h1>"
+>     "<p>这是一封 <b>HTML</b> 邮件。</p>"
+>     "</body></html>\r\n";
+> ```
+>
+> 这样就可以发送一封包含 `css` 样式的 `HTML` 邮件了。
+>
+> 更多的还有附件、图片等邮件内容的发送，这些都可以通过设置邮件头部和邮件内容来实现，就留给各位自行探索了。
+
+## 封装邮件发送模块
+
+为了方便使用，我们可以将邮件发送的功能封装成一个简单的类，提供更易用的接口。
+
