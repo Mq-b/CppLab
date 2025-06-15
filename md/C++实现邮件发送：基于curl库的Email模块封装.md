@@ -314,5 +314,176 @@ int main() {
 
 ## 封装邮件发送模块
 
-为了方便使用，我们可以将邮件发送的功能封装成一个简单的类，提供更易用的接口。
+为了方便使用，我们可以将邮件发送的功能封装成一个简单的函数，提供更易用的接口。
 
+`smtp_mail_sender.h`：
+
+```cpp
+#pragma once
+#include <string>
+
+namespace smtp {
+
+    struct EmailInfo {
+        std::string smtp_url;   // SMTP地址，例如 smtp://smtp.qq.com:587
+        std::string username;   // 邮箱账号
+        std::string password;   // 邮箱密码（授权码）
+        std::string from;       // 发件人邮箱
+        std::string to;         // 收件人邮箱
+        std::string subject;    // 邮件主题
+        std::string body;       // 邮件内容（纯文本或HTML）
+        bool is_html = false;   // 是否HTML格式
+    };
+
+    // 发送邮件，支持纯文本与HTML
+    bool send_email(const EmailInfo& info);
+
+} // namespace smtp
+```
+
+`smtp_mail_sender.cpp`：
+
+```cpp
+#include "smtp_mail_sender.h"
+#include <curl/curl.h>
+#include <iostream>
+#include <cstring>
+
+namespace smtp {
+
+    struct UploadStatus {
+        std::size_t bytes_read = 0;
+        std::string payload;
+    };
+
+    static std::size_t payload_source(char* ptr, std::size_t size, std::size_t nmemb, void* userp) {
+        UploadStatus* upload_ctx = static_cast<UploadStatus*>(userp);
+        const std::size_t buffer_size = size * nmemb;
+
+        if (upload_ctx->bytes_read >= upload_ctx->payload.size())
+            return 0;
+
+        std::size_t copy_size = upload_ctx->payload.size() - upload_ctx->bytes_read;
+        if (copy_size > buffer_size)
+            copy_size = buffer_size;
+
+        memcpy(ptr, upload_ctx->payload.c_str() + upload_ctx->bytes_read, copy_size);
+        upload_ctx->bytes_read += copy_size;
+        return copy_size;
+    }
+
+    bool send_email(const EmailInfo& info) {
+        CURL* curl = curl_easy_init();
+        if (!curl) return false;
+
+        CURLcode res;
+        curl_slist* recipients = nullptr;
+
+        // 构造邮件内容
+        std::string payload;
+        payload += "To: " + info.to + "\r\n";
+        payload += "From: " + info.from + "\r\n";
+        payload += "Subject: " + info.subject + "\r\n";
+        if (info.is_html)
+            payload += "Content-Type: text/html; charset=UTF-8\r\n";
+        else
+            payload += "Content-Type: text/plain; charset=UTF-8\r\n";
+        payload += "\r\n";
+        payload += info.body + "\r\n";
+
+        UploadStatus upload_ctx = { 0, payload };
+
+        curl_easy_setopt(curl, CURLOPT_URL, info.smtp_url.c_str());                 // 设置SMTP服务器地址
+        curl_easy_setopt(curl, CURLOPT_PORT, 587L);                                 // 设置SMTP端口
+        curl_easy_setopt(curl, CURLOPT_USERNAME, info.username.c_str());            // 设置SMTP用户名
+        curl_easy_setopt(curl, CURLOPT_PASSWORD, info.password.c_str());            // 设置SMTP密码（授权码）
+        curl_easy_setopt(curl, CURLOPT_MAIL_FROM, ("<" + info.from + ">").c_str()); // 设置发件人邮箱
+        recipients = curl_slist_append(nullptr, ("<" + info.to + ">").c_str());     // 构造收件人邮箱列表
+        curl_easy_setopt(curl, CURLOPT_MAIL_RCPT, recipients);                      // 设置收件人邮箱
+        curl_easy_setopt(curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);                    // 启用SSL/TLS加密传输               
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);                         // 跳过SSL证书校验
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);                         // 跳过SSL主机名校验
+        curl_easy_setopt(curl, CURLOPT_LOGIN_OPTIONS, "AUTH=LOGIN");                // 指定 LOGIN 认证方式
+        curl_easy_setopt(curl, CURLOPT_READFUNCTION, payload_source);               // 设置回调函数，用于提供邮件内容读取
+        curl_easy_setopt(curl, CURLOPT_READDATA, &upload_ctx);                      // 设置回调函数的上下文数据，传递upload_ctx
+        curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);                                 // 设置为上传模式（即发邮件）
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);                                // 开启调试信息输出
+
+        res = curl_easy_perform(curl);                                              // 正式执行SMTP流程（连接、认证、发信）。libcurl会自动完成所有SMTP细节
+        curl_slist_free_all(recipients);                                            // 释放收件人列表内存
+        curl_easy_cleanup(curl);                                                    // 清理CURL句柄
+
+        if (res != CURLE_OK) {
+            std::cerr << "❌ curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+
+} // namespace smtp
+
+```
+
+使用示例：
+
+```cpp
+#include "smtp_mail_sender.h"
+
+int main() {
+    smtp::EmailInfo info;
+    info.smtp_url = "smtp://smtp.qq.com:587";
+    info.username = "Mq-b@qq.com";
+    info.password = "abcd";
+    info.from = "Mq-b@qq.com";
+    info.to = "Mq-b@qq.com";
+    info.subject = "HTML 邮件";
+    info.body = R"(
+        <html><body><h1>你好！</h1><p>这是一封<b>HTML</b>邮件。</p></body></html>
+    )";
+    info.is_html = true;
+
+    smtp::send_email(info);
+
+    info.subject = "纯文本邮件";
+    info.body = "这是一封纯文本邮件。";
+    info.body = "你好！";
+    smtp::send_email(info);
+}
+```
+
+```cmake
+cmake_minimum_required (VERSION 3.12)
+
+project ("test_email")
+
+set(CMAKE_CXX_STANDARD 14)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build/${CMAKE_BUILD_TYPE}/bin)
+
+# 看情况修改
+set(CMAKE_PREFIX_PATH "D:/vcpkg-master/installed/x64-windows")
+
+find_package(OpenSSL REQUIRED)
+find_package(CURL REQUIRED)
+
+add_executable (${PROJECT_NAME} "main.cpp" "smtp_mail_sender.cpp")
+
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    OpenSSL::SSL 
+    OpenSSL::Crypto 
+    CURL::libcurl # linux 直接链 curl
+)
+```
+
+> [!NOTE]
+>
+> 测试 MSVC 与 Linux gcc 编译器，无误。
+
+## 总结
+
+整体来看，内容并不复杂，最终的封装也相对简洁。
+对于一般的通知需求已经完全足够。如果有附件、图片等更复杂的功能需求，可以根据实际情况自行扩展代码实现。
+
+前文我们花费大量篇幅介绍了 `SMTP` 协议、邮件的基本组成（包括邮件客户端、邮件服务器，以及不同邮件服务商的差异），还涉及了使用 `curl` 命令行工具进行测试的细节。这些内容不仅限于某种编程语言，而是邮件发送的通用基础知识。
+
+希望通过本节学习，你能对邮件发送有一个全面且清晰的认识，并掌握利用 `curl` 库实现邮件发送的基本方法。
