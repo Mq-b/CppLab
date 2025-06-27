@@ -133,7 +133,7 @@ int puts(const char *str) {
     int ret = real_puts("I am a hook!");
 
     // 打印自定义内容
-    printf("I am a hook!\n");
+    printf("I am a hook!");
 
     // 返回原始结果
     return ret;
