@@ -140,11 +140,11 @@ int puts(const char *str) {
 }
 ```
 
-这基本是一个标准的钩子函数实现方式模板，我们必然得获取原始函数地址，然后调用原始函数，以确保程序的正常运行。然后在根据我们的需求做出一些修改。
+这基本是一个标准的钩子函数实现方式模板，我们必然得获取原始函数地址，然后调用原始函数，以确保程序的正常运行。然后再根据我们的需求做出一些修改。
 
 [`dlsym`](https://pubs.opengroup.org/onlinepubs/009604299/functions/dlsym.html) 函数类似于 windows 的 [`LoadLibrary`](https://learn.microsoft.com/zh-cn/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibrarya) + [`GetProcAddress`](https://learn.microsoft.com/zh-cn/windows/win32/api/libloaderapi/nf-libloaderapi-getprocaddress)，它用于获取动态链接库中的函数地址。然后直接调用。
 
-`dlsym` 通常配合 [`dlopen`](https://pubs.opengroup.org/onlinepubs/009604299/functions/dlopen.html) 使用，但在这里我们使用 `RTLD_NEXT` 来获取下一个匹配的函数地址，这样可以确保我们调用的是系统的原始 `getsockname` 函数。
+`dlsym` 通常配合 [`dlopen`](https://pubs.opengroup.org/onlinepubs/009604299/functions/dlopen.html) 使用，但在这里我们使用 `RTLD_NEXT` 来获取下一个匹配的函数地址，这样可以确保我们调用的是原始的 的 `libc` 中的 `puts` 函数。
 
 > [!Tip]
 > 简单来说，`RTLD_NEXT` 就是告诉 `dlsym`： 别找我自己写的这个函数，帮我去找系统或别的库里同名的那个原始函数。
