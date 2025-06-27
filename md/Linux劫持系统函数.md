@@ -108,7 +108,11 @@ I am a hook!
 >
 > 那么你可能会发现，程序出现了段错误（`Segmentation fault`），这涉及到一个有趣的优化，末尾带换行符的 `printf` 函数调用可能会被直接优化成 `puts` 函数调用，就直接调用了我们自己的钩子函数，造成无限递归调用，最终栈溢出导致段错误。
 >
-> -  Hook 函数内部调用原函数时，**千万不能再次调用被 Hook 的函数**，否则会陷入无限递归。
+> [**Complier Explorer**](https://godbolt.org/z/Mc1b9Kf93)：
+>
+> ![Complier Explorer](../imgae/godbolt-printf.png)
+>
+> - Hook 函数内部调用原函数时，**千万不能再次调用被 Hook 的函数**，否则会陷入无限递归。
 
 正常来说我们的 `fakeputs.c` 标准写法应该是：
 
@@ -339,4 +343,24 @@ Local IP: 47.100.34.70
 LD_PRELOAD=./libfakeip.so ./Ftp-Server
 ```
 
+## 总结
+
+我们通过一个实际案例，深入讲解了如何在 Linux 系统中使用 `LD_PRELOAD` 技术来劫持系统函数。通过自定义动态链接库并覆盖系统原函数（如 `getsockname`），我们可以在运行时修改程序行为，而无需修改其源代码。
+
+在实际应用中，我们遇到的 FTP 服务端在被动模式下返回内网 IP，导致客户端连接失败。通过分析其底层实现，确定其最终调用的是 POSIX 标准的 `getsockname` 函数。于是，我们利用钩子技术劫持该函数，强制其返回指定的公网 IP，从而绕过内网 IP 带来的限制，成功完成了客户端的下载操作。
+
+此外，我们还介绍了劫持 `puts` 和 `strcmp` 等函数的通用做法，强调了避免递归调用和利用`dlsym` 获取原始函数地址进行使用的重要性。这种技术在调试、测试、模拟、注入等场景中具有广泛的实用价值，也提醒我们软件安全中应注意的潜在风险。
+
+总的来说，`LD_PRELOAD` 提供了一种高效灵活的手段，使开发者可以优雅地“欺骗”系统调用，达到修改行为的目的，在调试和架构设计中极具实用意义。
+
+即使不是出于 函数劫持（Hook）的目的，我们也可以利用 `LD_PRELOAD` 环境变量来调整动态链接库的加载顺序，从而避免使用不符合版本要求的系统库。
+
 ## 参考资料
+
+- [**POSIX.1-2017**](https://pubs.opengroup.org/onlinepubs/9699919799/)
+
+- [**Playing with LD_PRELOAD**](https://axcheron.github.io/playing-with-ld_preload/)
+
+- [**win32**](https://learn.microsoft.com/zh-cn/windows/win32/)
+
+- [**cppreference**](https://en.cppreference.com/w/c.html)
