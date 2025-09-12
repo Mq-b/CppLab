@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.12)
 
 project ("CppLab")
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build/${CMAKE_BUILD_TYPE}/bin)
 
 #set(CMAKE_PREFIX_PATH "/home/mq-b/project/vcpkg/installed/x64-linux")
@@ -84,11 +84,15 @@ target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json)
 set(CMAKE_PREFIX_PATH "D:/vcpkg-master/installed/x64-windows")
 find_package(OpenSSL REQUIRED)
 find_package(CURL REQUIRED)
+find_package(OpenCV REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE 
     OpenSSL::SSL 
     OpenSSL::Crypto 
     CURL::libcurl
+    ${OpenCV_LIBS}
 )
+
+
 
 # set(CMAKE_PREFIX_PATH "D:/dagong/test/vcpkg/installed/x64-windows")
 # find_package(botan CONFIG REQUIRED)
