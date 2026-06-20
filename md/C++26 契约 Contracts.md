@@ -48,7 +48,7 @@ GCC 16 使用 `-fcontract-evaluation-semantic` 指定契约求值语义。
 
 | 求值语义        | 检查契约 | 调用契约违背处理函数 | 终止程序 |
 | --------------- | -------- | -------------------- | -------- |
-| `ignored        | ❌        | ❌                    | ❌        |
+| `ignored`       | ❌        | ❌                    | ❌        |
 | `observe`       | ✅        | ✅                    | ❌        |
 | `enforce`       | ✅        | ✅                    | ✅        |
 | `quick_enforce` | ✅        | ❌                    | ✅        |
@@ -217,12 +217,6 @@ int main() {
 
 > [Compiler Explorer](https://godbolt.org/z/PKEEeo6EW)
 
-`[[nodiscard]]` 的效果：忽略返回值时编译器会发出警告（`-Wall` 下）。
-
-```txt
-warning: ignoring return value of function declared with 'nodiscard' attribute
-```
-
 逐行拆解：
 
 | 修饰 | 来源 | 作用 |
@@ -241,7 +235,7 @@ warning: ignoring return value of function declared with 'nodiscard' attribute
 
 一个函数声明，横跨 **7 个标准版本**，叠加 **10+ 种修饰**。这就是 2026 年的 C++。
 
-然后你就发现，GCC 直接就 **ICE（内部编译器错误）**。
+然后更难绷的出现了，GCC 直接就 **ICE（内部编译器错误）**😅。
 
 > Please submit a full bug report, with preprocessed source (by using -freport-bug). Please include the complete backtrace with any bug report. See <https://gcc.gnu.org/bugs/> for instructions.
 
